@@ -24,6 +24,8 @@ public class App {
             case "version":
                 System.out.println("Branch Flow version 1.0.0");
                 break;
+            case "teste":
+                RepositoryHelper.findRepositoryRoot(args[1]);
             default:
                 break;
         }
