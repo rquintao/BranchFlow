@@ -1,0 +1,2 @@
+#!/bin/sh
+java -jar /home/rquintao/Documents/projects/BranchFlow/target/v1-bf-1.0-SNAPSHOT.jar "$@"
