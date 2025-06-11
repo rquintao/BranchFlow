@@ -1,16 +1,23 @@
 package objects;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+
+import com.branchflow.RepositoryHelper;
 
 public abstract class GitObject {
 
     private byte[] deserializedData;
+    private byte[] serializedData;
 
     public GitObject() {
     }
@@ -37,11 +44,34 @@ public abstract class GitObject {
         return outputStream.toByteArray();
     }
 
+    public String zlibCompress(byte[] data) {
+        Deflater deflater = new Deflater();
+        deflater.setInput(data);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+
+        while (!deflater.finished()) {
+            int count = deflater.deflate(buffer);
+            outputStream.write(buffer, 0, count);
+        }
+
+        deflater.end();
+        return outputStream.toString();
+    }
+
+    public void saveToDisk(String basePath) throws IOException {
+        String serialString = new String(this.serializedData, StandardCharsets.UTF_8);
+        File dir = new File(basePath + "/" + serialString.substring(0, 2));
+        dir.mkdirs();
+        RepositoryHelper.writeToFile(dir.getPath(), this.zlibCompress(this.serializedData));
+    }
+
     public byte[] serialize(byte[] deserializedData) throws NoSuchAlgorithmException {
         String header = this.getType() + " " + deserializedData.length + "\0";
         byte[] headerBytes = header.getBytes(StandardCharsets.UTF_8);
         byte[] fullByteArray = new byte[headerBytes.length + deserializedData.length];
-        return computeSha1(fullByteArray);
+        this.serializedData = computeSha1(fullByteArray);
+        return this.serializedData;
     }
 
     @Override

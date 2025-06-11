@@ -2,10 +2,18 @@ package com.branchflow;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
+import java.util.zip.DataFormatException;
+
+import objects.GitBlob;
+import objects.GitObject;
 
 public class App {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, DataFormatException, NoSuchAlgorithmException {
         System.out.println("Welcome to Branch Flow! A new approach into git.");
 
         final String command = args.length > 0 ? args[0] : "help";
@@ -13,7 +21,12 @@ public class App {
         switch (command) {
             case "init":
                 getInitCmd(args);
-
+                break;
+            case "cat-file":
+                getCatFileCmd(args);
+                break;
+            case "hash-object":
+                getHashObjectCmd(args);
                 break;
             case "help":
                 System.out.println("Available commands:");
@@ -31,6 +44,41 @@ public class App {
         }
     }
 
+    private static void getHashObjectCmd(String[] args) throws NoSuchAlgorithmException {
+        final boolean writeFile = args.length > 1 && args[1].equals("-w");
+        String file = args[writeFile ? 2 : 1];
+        if (args.length < 2) {
+            System.out.println("Usage: git hash-object <file>");
+            return;
+        }
+
+        GitBlob gitBlob = new GitBlob();
+        System.out.println(gitBlob.serialize(file.getBytes()));
+
+    }
+
+    private static void getCatFileCmd(String[] args) throws DataFormatException {
+        if (args.length < 3) {
+            System.out.println("See help to know how to use command.");
+            return;
+        }
+        if (args.length > 3) {
+            throw new RuntimeException("Invalid command");
+        }
+
+        String type = args[1];
+        String content = args[2];
+
+        switch (type.toLowerCase()) {
+            case "blob":
+                GitBlob gitBlob = new GitBlob(content.getBytes());
+                System.out.println(gitBlob.toString());
+                break;
+            default:
+                throw new RuntimeException("Invalid type for cat-file");
+        }
+    }
+
     private static void getInitCmd(String[] args) throws IOException {
         System.out.println("Initializing a new Branch Flow repository...");
 
@@ -42,9 +90,10 @@ public class App {
         File workDirFile = new File(pathToInitialize);
 
         if (workDirFile.exists() && args.length == 2) {
+            File gitDir = new File(workDirFile + "/.git");
             if (!workDirFile.isDirectory()) {
                 throw new RuntimeException("The path you provided is not a Directory");
-            } else if (workDirFile.list().length != 0) {
+            } else if (gitDir.exists() && gitDir.list().length != 0) {
                 throw new RuntimeException("Git directory is not empty");
             }
         } else {
