@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.zip.DataFormatException;
 
 import objects.GitBlob;
+import objects.GitCommit;
 import objects.GitObject;
 
 public class App {
@@ -57,7 +58,7 @@ public class App {
 
     }
 
-    private static void getCatFileCmd(String[] args) throws DataFormatException {
+    private static void getCatFileCmd(String[] args) throws DataFormatException, IOException {
         if (args.length < 3) {
             System.out.println("See help to know how to use command.");
             return;
@@ -67,13 +68,20 @@ public class App {
         }
 
         String type = args[1];
-        String content = args[2];
+        String file = args[2];
+
+        System.out.println("Type: " + type);
 
         switch (type.toLowerCase()) {
             case "blob":
-                GitBlob gitBlob = new GitBlob(content.getBytes());
+                GitBlob gitBlob = new GitBlob(file);
                 System.out.println(gitBlob.toString());
                 break;
+            case "commit":
+                GitCommit gitCommit = new GitCommit(file);
+                System.out.println(gitCommit.toString());
+                break;
+
             default:
                 throw new RuntimeException("Invalid type for cat-file");
         }

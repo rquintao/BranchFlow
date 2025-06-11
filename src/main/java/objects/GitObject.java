@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -24,13 +26,17 @@ public abstract class GitObject {
 
     protected abstract String getType();
 
-    public GitObject(byte[] data) throws DataFormatException {
-        deserializedData = this.deserialize(data);
+    public GitObject(String file) throws DataFormatException, IOException {
+        deserializedData = this.decompressZlibCompressedContent(file);
     }
 
-    public byte[] deserialize(byte[] compressedData) throws DataFormatException {
+    public byte[] decompressZlibCompressedContent(String file) throws DataFormatException, IOException {
+
+        byte[] allBytes = Files
+                .readAllBytes(Paths.get(".git/objects/" + file.substring(0, 2) + "/" + file.substring(2)));
+
         Inflater inflater = new Inflater();
-        inflater.setInput(compressedData);
+        inflater.setInput(allBytes);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -76,15 +82,16 @@ public abstract class GitObject {
 
     @Override
     public String toString() {
-        return deserializedData != null ? extractContent().toString() : null;
+        return deserializedData != null ? new String(extractContent(this.deserializedData), StandardCharsets.UTF_8)
+                : null;
     }
 
-    private byte[] extractContent() {
+    private static byte[] extractContent(byte[] blob) {
         int nullIndex = -1;
 
         // Find the position of the null byte (\0)
-        for (int i = 0; i < this.deserializedData.length; i++) {
-            if (this.deserializedData[i] == 0) {
+        for (int i = 0; i < blob.length; i++) {
+            if (blob[i] == 0) {
                 nullIndex = i;
                 break;
             }
@@ -95,16 +102,16 @@ public abstract class GitObject {
         }
 
         // Extract the size string and parse it
-        String sizeStr = new String(this.deserializedData, 0, nullIndex, StandardCharsets.UTF_8);
+        String sizeStr = new String(blob, 0, nullIndex, StandardCharsets.UTF_8);
         int size = Integer.parseInt(sizeStr.split(" ")[1]);
 
         // Extract the content
         int contentStart = nullIndex + 1;
-        if (contentStart + size > this.deserializedData.length) {
+        if (contentStart + size > blob.length) {
             throw new IllegalArgumentException("Declared size exceeds blob length.");
         }
 
-        return Arrays.copyOfRange(this.deserializedData, contentStart, contentStart + size);
+        return Arrays.copyOfRange(blob, contentStart, contentStart + size);
     }
 
     private static byte[] computeSha1(byte[] data) throws NoSuchAlgorithmException {
