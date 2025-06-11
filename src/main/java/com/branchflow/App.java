@@ -34,6 +34,7 @@ public class App {
                 System.out.println("  init - Initialize a new Branch Flow repository");
                 System.out.println("  help - Show this help message");
                 System.out.println("  version - Show the version of Branch Flow");
+                System.out.println("  cat-file TYPE (file) - where type can be COMMIT or BLOB");
                 break;
             case "version":
                 System.out.println("Branch Flow version 1.0.0");
